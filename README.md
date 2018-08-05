@@ -40,7 +40,7 @@ The masternode must have 99+% uptime
 1. Create a new wallet using the CLI Wallet ( https://github.com/arionum/lightWalletCLI )
 2. Send 100.010 ARO to the new address.
 3. Install the Arionum node on the same server. The node must be accessible on ip + port 80, ex: http://1.1.2.2
-4. Edit the config.inc.php, set "masternode" to true and the "masternode_public_key" to the wallet's pub key.
+4. Edit the config.inc.php, set $_config['masternode'] to true and the $_config['masternode_public_key'] to the wallet's pub key.
 5. Download the masternode-miner ( https://github.com/arionum/masternode-miner ) in a secure location on the same server.
 6. Create a .env file in the same folder as the masternode-miner and add in it the public key on the first row and the private key on the second row.
 7. chmod +x the masternode-miner file.
