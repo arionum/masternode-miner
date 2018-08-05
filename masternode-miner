@@ -1,0 +1,106 @@
+<?php
+/*
+The MIT License (MIT)
+Copyright (c) 2018 AroDev
+
+www.arionum.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+
+
+if (!file_exists(__DIR__."/.env")) {
+    die("ERROR: Please create a .env file containing the public key on the first row and the private key on the second row.");
+}
+
+$f=file(__DIR__."/.env");
+
+$masternode_public_key=trim($f[0]);
+$masternode_private_key=trim($f[1]);
+
+if (empty($masternode_public_key)) {
+    die("ERROR: Invalid public key");
+}
+
+if (empty($masternode_private_key)) {
+    die("ERROR: Invalid public key");
+}
+
+
+
+$node="http://127.0.0.1";
+
+// make sure it's not accessible in the browser
+if (php_sapi_name() !== 'cli') {
+    die("This should only be run as cli");
+}
+
+$res=file_get_contents("http://127.0.0.1/mine.php?q=info");
+$data=json_decode($res, true);
+if ($data['status']!="ok") {
+    die("Invalid response from the node!\n");
+}
+$height=$data['data']['height'];
+
+
+if ($height%3==2) {
+    $nonce = base64_encode(openssl_random_pseudo_bytes(32));
+    $nonce = preg_replace("/[^a-zA-Z0-9]/", "", $nonce);
+
+    $base = $masternode_public_key."-".$nonce."-".$data['data']['block']."-".$data['data']['difficulty'];
+    $argon = password_hash(
+        $base,
+        PASSWORD_ARGON2I,
+        ['memory_cost' => 16384, "time_cost" => 4, "threads" => 4]
+    );
+
+    $postData = http_build_query(
+        [
+            'argon'       => $argon,
+            'nonce'       => $nonce,
+            'private_key' => $masternode_private_key,
+            'public_key'  => $masternode_public_key,
+        ]
+    );
+
+    $opts = [
+        'http' =>
+            [
+                'method'  => 'POST',
+                'header'  => 'Content-type: application/x-www-form-urlencoded',
+                'content' => $postData,
+            ],
+    ];
+
+    $context = stream_context_create($opts);
+
+    $res = file_get_contents($node."/mine.php?q=submitNonce", false, $context);
+    $data = json_decode($res, true);
+
+    if ($data['status'] == 'ok') {
+        echo "\n--> Masternode block confirmed.\n";
+        return true;
+    } else {
+        echo "--> The Masternode block did not confirm.\n\n";
+        return false;
+    }
+} else {
+    echo "Not a masternode block!\n";
+}
