@@ -2,12 +2,13 @@
 A proof of concept masternode miner for Arionum
 
 **REQUIREMENTS**
-8 GB RAM
-100GB+ DISK SPACE (SSD)
-4 CPU Cores
-100.000 ARO
+1. 8 GB RAM
+2. 100GB+ DISK SPACE (SSD)
+3. 4 CPU Cores
+4. 100.000 ARO
 
 **IMPORTANT INFORMATION**
+
 The masternodes are implemented starting block 80.000
 
 The cost of a masternode is 100.000 ARO
