@@ -32,6 +32,9 @@ The masternode must have 99+% uptime
 **Keep in mind this is only the very first version of masternodes, which deals mostly with mining. A lot of functionality will be added in the near future and it will be very important to keep your node updated and with the required resources.**
 
 
+
+
+
 **INSTALL INSTRUCTIONS**
 
 1. Create a new wallet using the CLI Wallet ( https://github.com/arionum/lightWalletCLI )
