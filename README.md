@@ -45,6 +45,7 @@ The masternode must have 99+% uptime
 6. Create a .env file in the same folder as the masternode-miner and add in it the public key on the first row and the private key on the second row.
 7. chmod +x the masternode-miner file.
 8. Create a cronjob to run every minute the masternode-miner file.
+
 ex: * * * * * YOURUSER /home/YOURUSER/masternode-miner/masternode-miner >/dev/null
 9. Using the cli wallet, run the command: ./light-arionum-cli masternode create IP (replace the IP with the actual IP)
 10. Wait 360 blocks and your masternode will start mining.
