@@ -23,8 +23,172 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 OR OTHER DEALINGS IN THE SOFTWARE.
 */
+error_reporting(0);
+if (!extension_loaded("openssl") && !defined("OPENSSL_KEYTYPE_EC")) {
+    die("Openssl php extension missing");
+}
+if (!extension_loaded("gmp")) {
+    die("GMP php extension missing");
+}
+if (floatval(phpversion())<7.2) {
+    die("The minimum php version required is 7.2");
+}
 
 
+ // Base58 encoding/decoding functions - all credits go to https://github.com/stephen-hill/base58php
+    function base58_encode($string)
+    {
+        $alphabet='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+        $base=strlen($alphabet);
+        // Type validation
+        if (is_string($string) === false) {
+            return false;
+        }
+        // If the string is empty, then the encoded string is obviously empty
+        if (strlen($string) === 0) {
+            return '';
+        }
+        // Now we need to convert the byte array into an arbitrary-precision decimal
+        // We basically do this by performing a base256 to base10 conversion
+        $hex = unpack('H*', $string);
+        $hex = reset($hex);
+        $decimal = gmp_init($hex, 16);
+        // This loop now performs base 10 to base 58 conversion
+        // The remainder or modulo on each loop becomes a base 58 character
+        $output = '';
+        while (gmp_cmp($decimal, $base) >= 0) {
+            list($decimal, $mod) = gmp_div_qr($decimal, $base);
+            $output .= $alphabet[gmp_intval($mod)];
+        }
+        // If there's still a remainder, append it
+        if (gmp_cmp($decimal, 0) > 0) {
+            $output .= $alphabet[gmp_intval($decimal)];
+        }
+        // Now we need to reverse the encoded data
+        $output = strrev($output);
+        // Now we need to add leading zeros
+        $bytes = str_split($string);
+        foreach ($bytes as $byte) {
+            if ($byte === "\x00") {
+                $output = $alphabet[0] . $output;
+                continue;
+            }
+            break;
+        }
+        return (string) $output;
+    }
+    function base58_decode($base58)
+    {
+        $alphabet='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+        $base=strlen($alphabet);
+
+        // Type Validation
+        if (is_string($base58) === false) {
+            return false;
+        }
+        // If the string is empty, then the decoded string is obviously empty
+        if (strlen($base58) === 0) {
+            return '';
+        }
+        $indexes = array_flip(str_split($alphabet));
+        $chars = str_split($base58);
+        // Check for invalid characters in the supplied base58 string
+        foreach ($chars as $char) {
+            if (isset($indexes[$char]) === false) {
+                return false;
+            }
+        }
+        // Convert from base58 to base10
+        $decimal = gmp_init($indexes[$chars[0]], 10);
+        for ($i = 1, $l = count($chars); $i < $l; $i++) {
+            $decimal = gmp_mul($decimal, $base);
+            $decimal = gmp_add($decimal, $indexes[$chars[$i]]);
+        }
+        // Convert from base10 to base256 (8-bit byte array)
+        $output = '';
+        while (gmp_cmp($decimal, 0) > 0) {
+            list($decimal, $byte) = gmp_div_qr($decimal, 256);
+            $output = pack('C', gmp_intval($byte)) . $output;
+        }
+        // Now we need to add leading zeros
+        foreach ($chars as $char) {
+            if ($indexes[$char] === 0) {
+                $output = "\x00" . $output;
+                continue;
+            }
+            break;
+        }
+        return $output;
+    }
+
+
+function pem2coin($data)
+{
+    $data=str_replace("-----BEGIN PUBLIC KEY-----", "", $data);
+    $data=str_replace("-----END PUBLIC KEY-----", "", $data);
+    $data=str_replace("-----BEGIN EC PRIVATE KEY-----", "", $data);
+    $data=str_replace("-----END EC PRIVATE KEY-----", "", $data);
+    $data=str_replace("\n", "", $data);
+    $data=base64_decode($data);
+    return base58_encode($data);
+}
+
+function get_address($hash)
+{
+    for ($i=0;$i<9;$i++) {
+        $hash=hash('sha512', $hash, true);
+    }
+    return base58_encode($hash);
+}
+
+
+function coin2pem($data, $is_private_key=false)
+{
+    $data=base58_decode($data);
+    $data=base64_encode($data);
+
+    $dat=str_split($data, 64);
+    $data=implode("\n", $dat);
+
+    if ($is_private_key) {
+        return "-----BEGIN EC PRIVATE KEY-----\n".$data."\n-----END EC PRIVATE KEY-----\n";
+    }
+    return "-----BEGIN PUBLIC KEY-----\n".$data."\n-----END PUBLIC KEY-----\n";
+}
+function ec_sign($data, $key)
+{
+    $private_key=coin2pem($key, true);
+   
+   
+    $pkey=openssl_pkey_get_private($private_key);
+  
+    $k=openssl_pkey_get_details($pkey);
+
+
+    openssl_sign($data, $signature, $pkey, OPENSSL_ALGO_SHA256);
+  
+    
+    
+    return base58_encode($signature);
+}
+
+
+function ec_verify($data, $signature, $key)
+{
+    $public_key=coin2pem($key);
+   
+    $signature=base58_decode($signature);
+    
+    $pkey=openssl_pkey_get_public($public_key);
+  
+    $res=openssl_verify($data, $signature, $pkey, OPENSSL_ALGO_SHA256);
+  
+ 
+    if ($res===1) {
+        return true;
+    }
+    return false;
+}
 
 if (!file_exists(__DIR__."/.env")) {
     die("ERROR: Please create a .env file containing the public key on the first row and the private key on the second row.");
@@ -34,7 +198,7 @@ $f=file(__DIR__."/.env");
 
 $masternode_public_key=trim($f[0]);
 $masternode_private_key=trim($f[1]);
-
+$node=trim($f[2]);
 if (empty($masternode_public_key)) {
     die("ERROR: Invalid public key");
 }
@@ -42,17 +206,21 @@ if (empty($masternode_public_key)) {
 if (empty($masternode_private_key)) {
     die("ERROR: Invalid public key");
 }
+if (empty($node)) {
+    $node="http://127.0.0.1";
+}
+
+$generator=get_address($masternode_public_key);
 
 
 
-$node="http://127.0.0.1";
 
 // make sure it's not accessible in the browser
 if (php_sapi_name() !== 'cli') {
     die("This should only be run as cli");
 }
 
-$res=file_get_contents("http://127.0.0.1/mine.php?q=info");
+$res=file_get_contents("$node/mine.php?q=getWork");
 $data=json_decode($res, true);
 if ($data['status']!="ok") {
     die("Invalid response from the node!\n");
@@ -60,7 +228,7 @@ if ($data['status']!="ok") {
 $height=$data['data']['height'];
 
 
-if ($height%3==2) {
+if (($height-1)%3==2) {
     $nonce = base64_encode(openssl_random_pseudo_bytes(32));
     $nonce = preg_replace("/[^a-zA-Z0-9]/", "", $nonce);
 
@@ -70,13 +238,41 @@ if ($height%3==2) {
         PASSWORD_ARGON2I,
         ['memory_cost' => 16384, "time_cost" => 4, "threads" => 4]
     );
+    $date=time();
+    $tdata=$data['data']['data'];
+    $difficulty=$data['data']['difficulty'];
+    $json = json_encode($rata);
+    $info = "{$generator}-{$height}-{$date}-{$nonce}-{$json}-{$difficulty}-{$argon}";
+    
+    $signature = ec_sign($info, $masternode_private_key);
+
+
+
+    $msg = '';
+    $x = [
+            "src"        => $generator,
+            "dst"        => $generator,
+            "val"        => $data['data']['reward'],
+            "version"    => 0,
+            "date"       => $date,
+            "message"    => '',
+            "fee"        => "0.00000000",
+            "public_key" => $masternode_public_key,
+        ];
+    ksort($x);
+    $info = $x['val']."-".$x['fee']."-".$x['dst']."-".$x['message']."-".$x['version']."-".$x['public_key']."-".$x['date'];
+        
+    $reward_signature = ec_sign($info, $masternode_private_key);
 
     $postData = http_build_query(
         [
             'argon'       => $argon,
             'nonce'       => $nonce,
-            'private_key' => $masternode_private_key,
+            'data'        => $json,
             'public_key'  => $masternode_public_key,
+            'signature'   => $signature,
+            'reward_signature' => $reward_signature,
+            'date'        => $date
         ]
     );
 
@@ -91,7 +287,8 @@ if ($height%3==2) {
 
     $context = stream_context_create($opts);
 
-    $res = file_get_contents($node."/mine.php?q=submitNonce", false, $context);
+    $res = file_get_contents($node."/mine.php?q=submitBlock", false, $context);
+    
     $data = json_decode($res, true);
 
     if ($data['status'] == 'ok') {
