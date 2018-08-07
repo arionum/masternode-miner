@@ -55,10 +55,10 @@ with the actual IP)
 * * * * * YOURUSER /home/YOURUSER/masternode-miner/masternode-miner >/dev/null
 ```
 
-### Example `.env`:
+### Example .env:
 
 *For extra security, you can keep your masternode miner and your keys on a separate secure server by
-adding the masternode address on the third row of the .env file as shown in the example.*
+adding the masternode address on the third row of the `.env` file as shown in the example.*
 
 ```
 public-key
