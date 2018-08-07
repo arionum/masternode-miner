@@ -1,6 +1,6 @@
 # masternode-miner
 
-A proof of concept masternode miner for Arionum
+A proof of concept masternode miner for Arionum.
 
 ## REQUIREMENTS
 
@@ -35,15 +35,18 @@ The masternode must have 99+% uptime
 
 ## INSTALL INSTRUCTIONS
 
-1. Create a new wallet using the CLI Wallet ( https://github.com/arionum/lightWalletCLI )
+1. Create a new wallet using the [CLI Wallet](https://github.com/arionum/lightWalletCLI)
 2. Send 100.010 ARO to the new address.
 3. Install the Arionum node on the same server. The node must be accessible on ip + port 80, ex: http://1.1.2.2
-4. Edit the config.inc.php, set $_config['masternode'] to true and the $_config['masternode_public_key'] to the wallet's pub key.
-5. Download the masternode-miner ( https://github.com/arionum/masternode-miner ) in a secure location on the same server.
+4. Edit the `config.inc.php`, set `$_config['masternode']` to `true` and the 
+`$_config['masternode_public_key']` to the wallet's public key.
+5. Download the [masternode-miner](https://github.com/arionum/masternode-miner) to a secure location 
+on the same server.
 6. Create a .env file in the same folder as the masternode-miner and add in it the public key on the first row and the private key on the second row.
-7. chmod +x the masternode-miner file.
+7. Make the miner executable using `chmod +x masternode-miner`
 8. Create a cronjob to run every minute the masternode-miner file.
-9. Using the cli wallet, run the command: ./light-arionum-cli masternode create IP (replace the IP with the actual IP)
+9. Using the cli wallet, run the command: `./light-arionum-cli masternode create [ip]` (replace the IP 
+with the actual IP)
 10. Wait 360 blocks and your masternode will start mining.
 
 ```
