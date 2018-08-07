@@ -1,13 +1,15 @@
 # masternode-miner
+
 A proof of concept masternode miner for Arionum
 
-**REQUIREMENTS**
+## REQUIREMENTS
+
 1. 8 GB RAM
 2. 100GB+ DISK SPACE (SSD)
 3. 4 CPU Cores
 4. 100.000 ARO
 
-**IMPORTANT INFORMATION**
+## IMPORTANT INFORMATION
 
 The masternodes are implemented starting block 80.000
 
@@ -31,11 +33,7 @@ The masternode must have 99+% uptime
 
 **Keep in mind this is only the very first version of masternodes, which deals mostly with mining. A lot of functionality will be added in the near future and it will be very important to keep your node updated and with the required resources.**
 
-
-
-
-
-**INSTALL INSTRUCTIONS**
+## INSTALL INSTRUCTIONS
 
 1. Create a new wallet using the CLI Wallet ( https://github.com/arionum/lightWalletCLI )
 2. Send 100.010 ARO to the new address.
@@ -53,6 +51,7 @@ Example cronjob: * * * * * YOURUSER /home/YOURUSER/masternode-miner/masternode-m
 ```
 
 ** For extra security, you can keep your masternode miner and your keys on a separate secure server by adding the masternode address on the third row of the .env file.
+
 Example .env:
 ```
 public-key
