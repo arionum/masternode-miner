@@ -242,7 +242,7 @@ if (($height-1)%3==2) {
     $date=time();
     $tdata=$data['data']['data'];
     $difficulty=$data['data']['difficulty'];
-    $json = json_encode($rata);
+    $json = json_encode($tdata);
     $info = "{$generator}-{$height}-{$date}-{$nonce}-{$json}-{$difficulty}-{$argon}";
     
     $signature = ec_sign($info, $masternode_private_key);
