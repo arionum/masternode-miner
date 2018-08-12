@@ -224,7 +224,21 @@ if (php_sapi_name() !== 'cli') {
 $res=file_get_contents("$node/mine.php?q=getWork");
 $data=json_decode($res, true);
 if ($data['status']!="ok") {
-    die("Invalid response from the node!\n");
+	echo "Using external nodes\n";
+	$f=file("http://api.arionum.com/peers.txt");
+        shuffle($f);
+	$i=0;
+        foreach ($f as $x) {
+            if (strlen(trim($x))>5) {
+                $node=trim($x);
+		$i++;
+		$res=file_get_contents("$node/mine.php?q=getWork");
+		$data=json_decode($res, true);
+		if ($data['status']=="ok"||$i>5){ break; }
+            }
+        }
+
+ if($data['status']!="ok") die("Invalid response from the node!\n");
 }
 $height=$data['data']['height'];
 
