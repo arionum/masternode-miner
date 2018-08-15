@@ -1,5 +1,9 @@
 # masternode-miner
 
+THIS SOFTWARE IS NOW OBSOLETE!
+Should no longer be used. For a masternode guide, follow: https://forum.arionum.com/viewtopic.php?f=13&t=367&p=1669#p1669
+
+
 A proof of concept masternode miner for Arionum.
 
 ## REQUIREMENTS
